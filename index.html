@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Powerbuilder App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <!--
+    Mobile-First SPA Design
+    - Bottom Navigation: Standard for mobile apps (thumb zone).
+    - Touch Targets: Expanded inputs and buttons (44px+).
+    - Sticky Header/Footer: Keeps context and nav available.
+    - Rest Timer: Floating Action Button (FAB) for gym utility.
+    - LocalStorage: Now persists both Workout Logs AND Progression Chart data.
+    -->
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: #f3f4f6; /* Gray-100 */
+        -webkit-tap-highlight-color: transparent;
+        padding-bottom: 80px; /* Space for bottom nav */
+      }
+
+      /* Smooth tab transitions */
+      .page-content {
+        display: none;
+        animation: fadeIn 0.3s ease-in-out;
+      }
+      .page-content.active {
+        display: block;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* Card Styles */
+      .app-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow:
+          0 4px 6px -1px rgba(0, 0, 0, 0.05),
+          0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        margin-bottom: 16px;
+        overflow: hidden;
+      }
+
+      /* Input Styling */
+      .gym-input {
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        text-align: center;
+        font-size: 16px; /* Prevents iOS zoom */
+        transition: all 0.2s;
+      }
+      .gym-input:focus {
+        border-color: #3b82f6;
+        background: white;
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+      }
+
+      /* Bottom Nav Item */
+      .nav-item {
+        color: #9ca3af;
+        transition: color 0.2s;
+      }
+      .nav-item.active {
+        color: #3b82f6;
+      }
+      .nav-icon {
+        font-size: 1.5rem;
+        margin-bottom: 2px;
+      }
+
+      /* Timer Modal */
+      #timer-modal {
+        backdrop-filter: blur(4px);
+      }
+    </style>
+  </head>
+  <body class="text-gray-800">
+    <!-- Top Header -->
+    <header
+      class="fixed top-0 w-full bg-white border-b border-gray-200 z-40 px-4 py-3 shadow-sm flex justify-between items-center"
+    >
+      <h1 class="text-xl font-bold text-gray-900 tracking-tight">Powerbuilder</h1>
+      <button
+        id="timer-btn"
+        class="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1"
+      >
+        ⏱️ <span id="timer-display">Timer</span>
+      </button>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="container mx-auto max-w-lg px-4 pt-20">
+      <!-- ======================= -->
+      <!-- == DASHBOARD (HOME) == -->
+      <!-- ======================= -->
+      <section id="dashboard" class="page-content active">
+        <!-- Welcome Banner -->
+        <div class="bg-blue-600 rounded-2xl p-6 text-white mb-6 shadow-lg relative overflow-hidden">
+          <div class="absolute top-0 right-0 opacity-10 text-9xl -mr-4 -mt-4">🚀</div>
+          <h2 class="text-2xl font-bold mb-1">Let's Crush It</h2>
+          <p class="text-blue-100 text-sm mb-4">Focus: Chest & Arms Specialization</p>
+          <div class="flex gap-2">
+            <div class="bg-blue-500 bg-opacity-50 px-3 py-1 rounded-lg text-xs font-medium">Week 4</div>
+            <div class="bg-blue-500 bg-opacity-50 px-3 py-1 rounded-lg text-xs font-medium">Bulking</div>
+          </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3 px-1">Start Workout</h3>
+        <div class="grid grid-cols-2 gap-3 mb-6">
+          <button
+            onclick="startWorkout('day1')"
+            class="app-card p-4 text-left hover:bg-gray-50 active:scale-95 transition-transform"
+          >
+            <div class="text-2xl mb-2">💪</div>
+            <div class="font-bold text-gray-900">Upper A</div>
+            <div class="text-xs text-gray-500">Chest & Arms</div>
+          </button>
+          <button
+            onclick="startWorkout('day2')"
+            class="app-card p-4 text-left hover:bg-gray-50 active:scale-95 transition-transform"
+          >
+            <div class="text-2xl mb-2">🦵</div>
+            <div class="font-bold text-gray-900">Lower A</div>
+            <div class="text-xs text-gray-500">Posterior Chain</div>
+          </button>
+          <button
+            onclick="startWorkout('day3')"
+            class="app-card p-4 text-left hover:bg-gray-50 active:scale-95 transition-transform"
+          >
+            <div class="text-2xl mb-2">📐</div>
+            <div class="font-bold text-gray-900">Upper B</div>
+            <div class="text-xs text-gray-500">Shoulders & Vol</div>
+          </button>
+          <button
+            onclick="startWorkout('day4')"
+            class="app-card p-4 text-left hover:bg-gray-50 active:scale-95 transition-transform"
+          >
+            <div class="text-2xl mb-2">⚡</div>
+            <div class="font-bold text-gray-900">Lower B</div>
+            <div class="text-xs text-gray-500">Power & Squat</div>
+          </button>
+        </div>
+
+        <!-- Mini Stats -->
+        <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3 px-1">At a Glance</h3>
+        <div class="app-card p-4 flex justify-between items-center">
+          <div>
+            <div class="text-xs text-gray-500">Daily Calories</div>
+            <div class="text-xl font-bold text-gray-900">2,750</div>
+          </div>
+          <div class="h-8 w-px bg-gray-200"></div>
+          <div>
+            <div class="text-xs text-gray-500">Protein Goal</div>
+            <div class="text-xl font-bold text-blue-600">160g</div>
+          </div>
+          <div class="h-8 w-px bg-gray-200"></div>
+          <div>
+            <div class="text-xs text-gray-500">Next Deload</div>
+            <div class="text-xl font-bold text-gray-900">2 Wks</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======================= -->
+      <!-- == WORKOUT LOGGER == -->
+      <!-- ======================= -->
+      <section id="log" class="page-content">
+        <div id="active-workout-header" class="mb-4">
+          <h2 class="text-2xl font-bold text-gray-900" id="workout-title">Select a Workout</h2>
+          <p class="text-sm text-gray-500" id="workout-subtitle">Go to Dashboard to start</p>
+        </div>
+
+        <div id="workout-exercises" class="space-y-4">
+          <!-- Exercises will be injected here via JS -->
+          <div class="text-center py-10 text-gray-400">
+            <p>No workout active.</p>
+            <button onclick="switchTab('dashboard')" class="text-blue-500 font-medium mt-2">Go to Dashboard</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======================= -->
+      <!-- == NUTRITION == -->
+      <!-- ======================= -->
+      <section id="nutrition" class="page-content">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">Fuel Your Growth</h2>
+
+        <!-- Macro Donut -->
+        <div class="app-card p-6 flex flex-col items-center">
+          <div class="relative h-48 w-48 mb-4">
+            <canvas id="nutritionChart"></canvas>
+            <div class="absolute inset-0 flex items-center justify-center flex-col pointer-events-none">
+              <span class="text-3xl font-bold text-gray-800">2750</span>
+              <span class="text-xs text-gray-500">KCAL</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-3 gap-4 w-full text-center">
+            <div class="bg-blue-50 p-2 rounded-lg">
+              <div class="text-blue-600 font-bold">160g</div>
+              <div class="text-xs text-blue-400">Protein</div>
+            </div>
+            <div class="bg-yellow-50 p-2 rounded-lg">
+              <div class="text-yellow-600 font-bold">350g</div>
+              <div class="text-xs text-yellow-500">Carbs</div>
+            </div>
+            <div class="bg-red-50 p-2 rounded-lg">
+              <div class="text-red-600 font-bold">70g</div>
+              <div class="text-xs text-red-400">Fat</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Tips -->
+        <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3 px-1">Timing Rules</h3>
+        <div class="space-y-2">
+          <div class="app-card p-4 flex items-start gap-3">
+            <span class="text-xl">🍌</span>
+            <div>
+              <div class="font-bold text-gray-900">Pre-Workout</div>
+              <div class="text-sm text-gray-600">Eat carbs 1-2 hours before (Oats/Fruit).</div>
+            </div>
+          </div>
+          <div class="app-card p-4 flex items-start gap-3">
+            <span class="text-xl">🍚</span>
+            <div>
+              <div class="font-bold text-gray-900">Post-Workout</div>
+              <div class="text-sm text-gray-600">Heavy carb meal + Protein (Rice/Chicken).</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======================= -->
+      <!-- == PROGRESSION == -->
+      <!-- ======================= -->
+      <section id="progression" class="page-content">
+        <h2 class="text-2xl font-bold text-gray-900 mb-4">Progress Tracker</h2>
+        <div class="flex justify-between items-center mb-4">
+          <p class="text-sm text-gray-500">Your strength history</p>
+          <button onclick="clearHistory()" class="text-xs text-red-400 underline">Reset Data</button>
+        </div>
+
+        <!-- Chart -->
+        <div class="app-card p-4 mb-6">
+          <div class="h-64 w-full">
+            <canvas id="progressionChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Add Entry Form -->
+        <div class="app-card p-5">
+          <h3 class="font-bold text-lg mb-4">Log New Max (Est.)</h3>
+          <form id="log-lift-form" class="space-y-4">
+            <div>
+              <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Lift</label>
+              <select id="lift-select" class="w-full gym-input p-3 text-left">
+                <option value="Incline DB Press">Incline DB Press</option>
+                <option value="Back Squat">Back Squat</option>
+                <option value="Deadlift">Deadlift</option>
+                <option value="Weighted Dips">Weighted Dips</option>
+              </select>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Weight</label>
+                <input type="number" id="lift-weight" placeholder="kg" class="w-full gym-input p-3" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Reps</label>
+                <input type="number" id="lift-reps" placeholder="#" class="w-full gym-input p-3" />
+              </div>
+            </div>
+            <button
+              type="submit"
+              class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-200 active:scale-95 transition-transform"
+            >
+              Add Entry
+            </button>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="fixed bottom-0 w-full bg-white border-t border-gray-200 pb-safe z-50">
+      <div class="flex justify-around items-center h-16">
+        <button class="nav-item active flex flex-col items-center justify-center w-full h-full" data-target="dashboard">
+          <span class="nav-icon">🏠</span>
+          <span class="text-[10px] font-medium">Home</span>
+        </button>
+        <button class="nav-item flex flex-col items-center justify-center w-full h-full" data-target="log">
+          <span class="nav-icon">📝</span>
+          <span class="text-[10px] font-medium">Log</span>
+        </button>
+        <button class="nav-item flex flex-col items-center justify-center w-full h-full" data-target="nutrition">
+          <span class="nav-icon">🍎</span>
+          <span class="text-[10px] font-medium">Diet</span>
+        </button>
+        <button class="nav-item flex flex-col items-center justify-center w-full h-full" data-target="progression">
+          <span class="nav-icon">📈</span>
+          <span class="text-[10px] font-medium">Stats</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Timer Modal Overlay -->
+    <div id="timer-modal" class="fixed inset-0 bg-black bg-opacity-30 hidden z-50 flex items-center justify-center">
+      <div class="bg-white rounded-2xl p-6 w-80 shadow-2xl text-center transform transition-all scale-100">
+        <h3 class="text-xl font-bold mb-4 text-gray-800">Rest Timer</h3>
+        <div id="timer-countdown" class="text-5xl font-mono font-bold text-blue-600 mb-6">00:00</div>
+
+        <div class="grid grid-cols-3 gap-2 mb-4">
+          <button onclick="setTimer(60)" class="bg-gray-100 py-2 rounded-lg font-medium hover:bg-gray-200">+60s</button>
+          <button onclick="setTimer(90)" class="bg-gray-100 py-2 rounded-lg font-medium hover:bg-gray-200">+90s</button>
+          <button onclick="setTimer(120)" class="bg-gray-100 py-2 rounded-lg font-medium hover:bg-gray-200">+2m</button>
+        </div>
+
+        <div class="flex gap-3">
+          <button
+            onclick="toggleTimer()"
+            id="timer-toggle-btn"
+            class="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl"
+          >
+            Start
+          </button>
+          <button onclick="closeTimer()" class="flex-1 bg-gray-100 text-gray-600 font-bold py-3 rounded-xl">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // --- DATA ---
+      const workoutData = {
+        day1: {
+          title: "Upper A",
+          subtitle: "Chest & Tricep Priority",
+          exercises: [
+            { name: "Incline DB Press", sets: 3, reps: "6-8", notes: "Heavy & Deep stretch" },
+            { name: "Weighted Dips", sets: 3, reps: "8-10", notes: "Lean forward" },
+            { name: "Weighted Pull-Ups", sets: 3, reps: "6-8", notes: "Maintain width" },
+            { name: "Cable Fly", sets: 3, reps: "12-15", notes: "High to Low" },
+            { name: "Tricep Overhead Ext", sets: 3, reps: "12-15", notes: "Controlled" },
+            { name: "Bicep Hammer Curls", sets: 3, reps: "10-12", notes: "Slow eccentric" },
+          ],
+        },
+        day2: {
+          title: "Lower A",
+          subtitle: "Posterior Chain Focus",
+          exercises: [
+            { name: "Romanian Deadlift", sets: 3, reps: "8-10", notes: "Hip hinge focus" },
+            { name: "Leg Press", sets: 3, reps: "10-12", notes: "Feet mid-high" },
+            { name: "Leg Curls", sets: 3, reps: "12-15", notes: "Max squeeze" },
+            { name: "Leg Extensions", sets: 3, reps: "12-15", notes: "1s hold at top" },
+            { name: "Standing Calf Raise", sets: 4, reps: "10-15", notes: "Full ROM" },
+            { name: "Cable Crunches", sets: 3, reps: "12-15", notes: "Weighted" },
+          ],
+        },
+        day3: {
+          title: "Upper B",
+          subtitle: "Shoulders & Volume",
+          exercises: [
+            { name: "Flat DB Press", sets: 3, reps: "8-10", notes: "Volume focus" },
+            { name: "Chest-Supported Row", sets: 3, reps: "10-12", notes: "Upper back" },
+            { name: "Seated DB Press", sets: 3, reps: "8-10", notes: "Strict form" },
+            { name: "DB Lateral Raises", sets: 4, reps: "15-20", notes: "Lead w/ elbows" },
+            { name: "Pec Deck Fly", sets: 3, reps: "15", notes: "Squeeze hard" },
+            { name: "Tri Pushdown / Curl", sets: 3, reps: "12-15", notes: "Superset finisher" },
+          ],
+        },
+        day4: {
+          title: "Lower B",
+          subtitle: "Power & Athleticism",
+          exercises: [
+            { name: "Deadlift", sets: 1, reps: "5 (Top)", notes: "+ 2 back-off sets" },
+            { name: "Back Squat", sets: 3, reps: "5-8", notes: "Systemic strength" },
+            { name: "Bulgarian Split Squat", sets: 2, reps: "10/leg", notes: "Unilateral" },
+            { name: "Hanging Leg Raises", sets: 3, reps: "10-15", notes: "Core" },
+            { name: "Seated Calf Raise", sets: 4, reps: "15-20", notes: "Volume" },
+          ],
+        },
+      };
+
+      // --- LOCAL STORAGE HANDLING ---
+      let workoutLog = JSON.parse(localStorage.getItem("pb_workoutLog")) || {};
+
+      // Progression Data Storage
+      let savedProgression = JSON.parse(localStorage.getItem("pb_progressionData"));
+
+      // Default progression data structure
+      const defaultProgressionData = {
+        labels: [],
+        datasets: [
+          { label: "Incline DB Press", data: [], borderColor: "#3b82f6", tension: 0.3 },
+          { label: "Back Squat", data: [], borderColor: "#eab308", tension: 0.3 },
+          { label: "Deadlift", data: [], borderColor: "#ef4444", tension: 0.3 },
+          { label: "Weighted Dips", data: [], borderColor: "#22c55e", tension: 0.3 },
+        ],
+      };
+
+      let progressionData = savedProgression || defaultProgressionData;
+
+      // --- NAVIGATION ---
+      const navItems = document.querySelectorAll(".nav-item");
+      const pages = document.querySelectorAll(".page-content");
+
+      function switchTab(targetId) {
+        navItems.forEach((item) => {
+          item.classList.toggle("active", item.dataset.target === targetId);
+        });
+        pages.forEach((page) => {
+          page.classList.toggle("active", page.id === targetId);
+        });
+
+        if (targetId === "nutrition") renderNutritionChart();
+        if (targetId === "progression") renderProgressionChart();
+
+        window.scrollTo(0, 0);
+      }
+
+      navItems.forEach((item) => {
+        item.addEventListener("click", () => switchTab(item.dataset.target));
+      });
+
+      // --- WORKOUT LOGIC ---
+      function startWorkout(dayKey) {
+        const data = workoutData[dayKey];
+        const container = document.getElementById("workout-exercises");
+
+        document.getElementById("workout-title").innerText = data.title;
+        document.getElementById("workout-subtitle").innerText = data.subtitle;
+
+        let html = "";
+        data.exercises.forEach((ex, idx) => {
+          const idBase = `${dayKey}_${idx}`;
+          const savedW = workoutLog[idBase + "_w"] || "";
+          const savedR = workoutLog[idBase + "_r"] || "";
+
+          html += `
+                <div class="app-card p-4">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <h4 class="font-bold text-gray-900">${ex.name}</h4>
+                            <p class="text-xs text-blue-500 font-medium">${ex.sets} sets × ${ex.reps}</p>
+                        </div>
+                        <div class="text-xs text-gray-400 italic text-right">${ex.notes}</div>
+                    </div>
+                    <div class="flex gap-3">
+                        <div class="flex-1">
+                            <label class="text-[10px] font-bold text-gray-400 uppercase">Weight</label>
+                            <input type="number"
+                                class="w-full gym-input p-3 font-bold text-gray-900"
+                                placeholder="kg"
+                                value="${savedW}"
+                                oninput="saveLog('${idBase}_w', this.value)">
+                        </div>
+                        <div class="flex-1">
+                            <label class="text-[10px] font-bold text-gray-400 uppercase">Reps</label>
+                            <input type="number"
+                                class="w-full gym-input p-3 font-bold text-gray-900"
+                                placeholder="Done"
+                                value="${savedR}"
+                                oninput="saveLog('${idBase}_r', this.value)">
+                        </div>
+                    </div>
+                </div>`;
+        });
+
+        html += `
+            <div class="pb-8">
+                <button onclick="finishWorkout()" class="w-full bg-green-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-green-200 active:scale-95 transition-transform">
+                    ✅ Finish Workout
+                </button>
+            </div>`;
+
+        container.innerHTML = html;
+        switchTab("log");
+      }
+
+      function saveLog(key, val) {
+        workoutLog[key] = val;
+        localStorage.setItem("pb_workoutLog", JSON.stringify(workoutLog));
+      }
+
+      function finishWorkout() {
+        if (confirm("Great job! Workout complete?")) {
+          switchTab("dashboard");
+        }
+      }
+
+      // --- TIMER LOGIC ---
+      let timerInterval;
+      let timeLeft = 0;
+      const modal = document.getElementById("timer-modal");
+      const display = document.getElementById("timer-display");
+      const modalDisplay = document.getElementById("timer-countdown");
+      const toggleBtn = document.getElementById("timer-toggle-btn");
+
+      document.getElementById("timer-btn").addEventListener("click", () => {
+        modal.classList.remove("hidden");
+      });
+
+      function closeTimer() {
+        modal.classList.add("hidden");
+      }
+
+      function setTimer(seconds) {
+        timeLeft = seconds;
+        updateTimerDisplay();
+        if (!timerInterval) startTimerInterval();
+      }
+
+      function toggleTimer() {
+        if (timerInterval) {
+          clearInterval(timerInterval);
+          timerInterval = null;
+          toggleBtn.innerText = "Start";
+          toggleBtn.classList.replace("bg-red-500", "bg-blue-600");
+        } else {
+          startTimerInterval();
+        }
+      }
+
+      function startTimerInterval() {
+        if (timeLeft <= 0) timeLeft = 60; // Default
+        toggleBtn.innerText = "Pause";
+        toggleBtn.classList.replace("bg-blue-600", "bg-red-500");
+
+        clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+          timeLeft--;
+          updateTimerDisplay();
+          if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            toggleBtn.innerText = "Start";
+            toggleBtn.classList.replace("bg-red-500", "bg-blue-600");
+            alert("Time's up!");
+          }
+        }, 1000);
+      }
+
+      function updateTimerDisplay() {
+        const m = Math.floor(timeLeft / 60)
+          .toString()
+          .padStart(2, "0");
+        const s = (timeLeft % 60).toString().padStart(2, "0");
+        const str = `${m}:${s}`;
+        display.innerText = timeLeft > 0 ? str : "Timer";
+        modalDisplay.innerText = str;
+      }
+
+      // --- CHARTS ---
+      let chartInstanceNutrition;
+      function renderNutritionChart() {
+        const ctx = document.getElementById("nutritionChart");
+        if (!ctx || chartInstanceNutrition) return;
+
+        chartInstanceNutrition = new Chart(ctx, {
+          type: "doughnut",
+          data: {
+            labels: ["Pro", "Carb", "Fat"],
+            datasets: [
+              {
+                data: [160 * 4, 350 * 4, 70 * 9],
+                backgroundColor: ["#3b82f6", "#eab308", "#ef4444"],
+                borderWidth: 0,
+              },
+            ],
+          },
+          options: {
+            cutout: "75%",
+            plugins: { legend: { display: false } },
+            responsive: true,
+            maintainAspectRatio: false,
+          },
+        });
+      }
+
+      let chartInstanceProgression;
+      function renderProgressionChart() {
+        const ctx = document.getElementById("progressionChart");
+        if (!ctx) return;
+        if (chartInstanceProgression) chartInstanceProgression.destroy();
+
+        chartInstanceProgression = new Chart(ctx, {
+          type: "line",
+          data: progressionData,
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: "index", intersect: false },
+            plugins: { legend: { position: "bottom", labels: { boxWidth: 10 } } },
+            scales: {
+              y: { beginAtZero: false, grid: { color: "#f3f4f6" } },
+              x: { grid: { display: false } },
+            },
+          },
+        });
+      }
+
+      // Add Progression Handler
+      document.getElementById("log-lift-form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const liftName = document.getElementById("lift-select").value;
+        const weight = Number(document.getElementById("lift-weight").value);
+        const reps = Number(document.getElementById("lift-reps").value);
+
+        if (weight && reps) {
+          const e1rm = Math.round(weight * (1 + reps / 30));
+          const date = new Date().toLocaleDateString(undefined, { month: "short", day: "numeric" });
+
+          // Add Date label if not exists
+          if (!progressionData.labels.includes(date)) {
+            progressionData.labels.push(date);
+          }
+
+          // Find dataset and add data
+          const dataset = progressionData.datasets.find((ds) => ds.label === liftName);
+          if (dataset) {
+            // Pad with nulls if this is a new date
+            while (dataset.data.length < progressionData.labels.length - 1) {
+              dataset.data.push(null);
+            }
+            dataset.data.push(e1rm);
+          }
+
+          // Save to LocalStorage
+          localStorage.setItem("pb_progressionData", JSON.stringify(progressionData));
+
+          // Update Chart
+          if (chartInstanceProgression) {
+            chartInstanceProgression.update();
+          } else {
+            renderProgressionChart();
+          }
+
+          // Reset Form
+          document.getElementById("lift-weight").value = "";
+          document.getElementById("lift-reps").value = "";
+          alert(`Logged! Est. 1RM: ${e1rm}kg`);
+        }
+      });
+
+      // Clear History
+      window.clearHistory = function () {
+        if (confirm("Are you sure? This deletes all graph history.")) {
+          localStorage.removeItem("pb_progressionData");
+          progressionData = defaultProgressionData;
+          location.reload();
+        }
+      };
+    </script>
+  </body>
+</html>
