@@ -2,25 +2,46 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
     <title>Powerbuilder App</title>
+
+    <!-- PWA / iOS Configuration -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Powerbuilder" />
+    <meta name="theme-color" content="#ffffff" />
+
+    <!-- PWA Icon (Data URI for single-file portability) -->
+    <link
+      rel="apple-touch-icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%232563eb%22 rx=%2220%22 ry=%2220%22/><text y=%22.9em%22 font-size=%2290%22>💪</text></svg>"
+    />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%232563eb%22 rx=%2220%22 ry=%2220%22/><text y=%22.9em%22 font-size=%2290%22>💪</text></svg>"
+    />
+
+    <!-- Web App Manifest (Data URI) -->
+    <link
+      rel="manifest"
+      href='data:application/manifest+json,{"name":"Powerbuilder AI","short_name":"Powerbuilder","start_url":".","display":"standalone","background_color":"#f3f4f6","theme_color":"#ffffff","icons":[{"src":"data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%232563eb%22 rx=%2220%22 ry=%2220%22/><text y=%22.9em%22 font-size=%2290%22>💪</text></svg>","sizes":"192x192","type":"image/svg+xml"}]}'
+    />
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <!--
-    Mobile-First SPA Design
-    - Bottom Navigation: Standard for mobile apps (thumb zone).
-    - Touch Targets: Expanded inputs and buttons (44px+).
-    - Sticky Header/Footer: Keeps context and nav available.
-    - Rest Timer: Floating Action Button (FAB) for gym utility.
-    - LocalStorage: Now persists both Workout Logs AND Progression Chart data.
-    -->
+
     <style>
       body {
         font-family: "Inter", sans-serif;
         background-color: #f3f4f6; /* Gray-100 */
         -webkit-tap-highlight-color: transparent;
-        padding-bottom: 80px; /* Space for bottom nav */
+        padding-bottom: 90px; /* Space for bottom nav + safe area */
+        padding-top: env(safe-area-inset-top);
       }
 
       /* Smooth tab transitions */
@@ -86,14 +107,45 @@
       #timer-modal {
         backdrop-filter: blur(4px);
       }
+
+      /* AI Badge Animation */
+      .ai-pulse {
+        animation: pulse-purple 2s infinite;
+      }
+      @keyframes pulse-purple {
+        0% {
+          box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.4);
+        }
+        70% {
+          box-shadow: 0 0 0 6px rgba(168, 85, 247, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(168, 85, 247, 0);
+        }
+      }
+
+      /* Install Prompt */
+      #install-prompt {
+        animation: slideUp 0.5s ease-out;
+      }
+      @keyframes slideUp {
+        from {
+          transform: translateY(100%);
+        }
+        to {
+          transform: translateY(0);
+        }
+      }
     </style>
   </head>
   <body class="text-gray-800">
     <!-- Top Header -->
     <header
-      class="fixed top-0 w-full bg-white border-b border-gray-200 z-40 px-4 py-3 shadow-sm flex justify-between items-center"
+      class="fixed top-0 w-full bg-white/90 backdrop-blur-md border-b border-gray-200 z-40 px-4 py-3 shadow-sm flex justify-between items-center pt-[calc(env(safe-area-inset-top)+10px)]"
     >
-      <h1 class="text-xl font-bold text-gray-900 tracking-tight">Powerbuilder</h1>
+      <h1 class="text-xl font-bold text-gray-900 tracking-tight">
+        Powerbuilder <span class="text-xs text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full ml-1">AI</span>
+      </h1>
       <button
         id="timer-btn"
         class="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1"
@@ -103,7 +155,7 @@
     </header>
 
     <!-- Main Content Container -->
-    <main class="container mx-auto max-w-lg px-4 pt-20">
+    <main class="container mx-auto max-w-lg px-4 pt-24">
       <!-- ======================= -->
       <!-- == DASHBOARD (HOME) == -->
       <!-- ======================= -->
@@ -183,6 +235,22 @@
         <div id="active-workout-header" class="mb-4">
           <h2 class="text-2xl font-bold text-gray-900" id="workout-title">Select a Workout</h2>
           <p class="text-sm text-gray-500" id="workout-subtitle">Go to Dashboard to start</p>
+        </div>
+
+        <div
+          id="ai-coach-banner"
+          class="hidden mb-4 bg-purple-50 border border-purple-200 rounded-xl p-4 flex items-center justify-between shadow-sm"
+        >
+          <div>
+            <h4 class="font-bold text-purple-800 text-sm">✨ AI Smart Coach</h4>
+            <p class="text-xs text-purple-600">Recommendations available.</p>
+          </div>
+          <button
+            onclick="applyAISuggestions()"
+            class="bg-purple-600 text-white text-xs font-bold px-3 py-2 rounded-lg active:scale-95 transition-transform"
+          >
+            Apply All
+          </button>
         </div>
 
         <div id="workout-exercises" class="space-y-4">
@@ -296,8 +364,27 @@
       </section>
     </main>
 
+    <!-- Install Prompt (Hidden by default) -->
+    <div
+      id="install-prompt"
+      class="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 p-4 z-[60] hidden shadow-2xl"
+    >
+      <div class="flex items-start justify-between">
+        <div class="flex gap-3">
+          <div class="h-12 w-12 bg-blue-600 rounded-xl flex items-center justify-center text-2xl">💪</div>
+          <div>
+            <h4 class="font-bold text-gray-900">Install App</h4>
+            <p class="text-sm text-gray-500">
+              Tap <span class="text-blue-600 font-bold text-lg">⎋</span> then "Add to Home Screen"
+            </p>
+          </div>
+        </div>
+        <button onclick="closeInstallPrompt()" class="text-gray-400 p-1">✕</button>
+      </div>
+    </div>
+
     <!-- Bottom Navigation Bar -->
-    <nav class="fixed bottom-0 w-full bg-white border-t border-gray-200 pb-safe z-50">
+    <nav class="fixed bottom-0 w-full bg-white border-t border-gray-200 pb-[env(safe-area-inset-bottom)] z-50">
       <div class="flex justify-around items-center h-16">
         <button class="nav-item active flex flex-col items-center justify-center w-full h-full" data-target="dashboard">
           <span class="nav-icon">🏠</span>
@@ -319,8 +406,8 @@
     </nav>
 
     <!-- Timer Modal Overlay -->
-    <div id="timer-modal" class="fixed inset-0 bg-black bg-opacity-30 hidden z-50 flex items-center justify-center">
-      <div class="bg-white rounded-2xl p-6 w-80 shadow-2xl text-center transform transition-all scale-100">
+    <div id="timer-modal" class="fixed inset-0 bg-black bg-opacity-30 hidden z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl text-center transform transition-all scale-100">
         <h3 class="text-xl font-bold mb-4 text-gray-800">Rest Timer</h3>
         <div id="timer-countdown" class="text-5xl font-mono font-bold text-blue-600 mb-6">00:00</div>
 
@@ -399,11 +486,8 @@
 
       // --- LOCAL STORAGE HANDLING ---
       let workoutLog = JSON.parse(localStorage.getItem("pb_workoutLog")) || {};
-
-      // Progression Data Storage
       let savedProgression = JSON.parse(localStorage.getItem("pb_progressionData"));
 
-      // Default progression data structure
       const defaultProgressionData = {
         labels: [],
         datasets: [
@@ -415,6 +499,7 @@
       };
 
       let progressionData = savedProgression || defaultProgressionData;
+      let currentSuggestions = {};
 
       // --- NAVIGATION ---
       const navItems = document.querySelectorAll(".nav-item");
@@ -438,19 +523,125 @@
         item.addEventListener("click", () => switchTab(item.dataset.target));
       });
 
+      // --- REALITY-BASED AI LOGIC ---
+      function parseRepGoal(repString) {
+        if (repString.includes("-")) {
+          const parts = repString.split("-");
+          return { min: parseInt(parts[0]), max: parseInt(parts[1]) };
+        }
+        if (repString.includes("Top")) return { min: 5, max: 5 };
+        if (repString.includes("/")) return { min: parseInt(repString), max: parseInt(repString) };
+
+        const val = parseInt(repString);
+        return { min: val, max: val };
+      }
+
+      function getExerciseType(name) {
+        name = name.toLowerCase();
+        if (name.includes("squat") || name.includes("deadlift") || (name.includes("press") && name.includes("leg"))) {
+          return "compound_big";
+        }
+        if (
+          name.includes("raise") ||
+          name.includes("fly") ||
+          name.includes("curl") ||
+          name.includes("extension") ||
+          name.includes("calf")
+        ) {
+          return "isolation";
+        }
+        return "compound_standard";
+      }
+
+      function getAIRecommendation(exerciseName, weightStr, repsStr, targetStr) {
+        if (!weightStr || !repsStr) return null;
+
+        const w = parseFloat(weightStr);
+        const r = parseInt(repsStr);
+        const goal = parseRepGoal(targetStr);
+        const type = getExerciseType(exerciseName);
+
+        // SCENARIO 1: CRUSHED IT (Above Range)
+        if (r > goal.max) {
+          let increase = 2.5;
+          if (type === "compound_big") increase = 5;
+
+          return {
+            newWeight: w + increase,
+            msg: `🚀 Crushed it! +${increase}kg`,
+            type: "increase",
+            style: "bg-green-100 text-green-800",
+          };
+        }
+
+        // SCENARIO 2: GRADUATED (Hit Top of Range)
+        if (r === goal.max) {
+          let increase = 2.5;
+          return {
+            newWeight: w + increase,
+            msg: `🎯 Range Cleared! +${increase}kg`,
+            type: "increase",
+            style: "bg-purple-100 text-purple-800",
+          };
+        }
+
+        // SCENARIO 3: IN THE ZONE (Inside Range or Under Max)
+        if (r >= goal.min && r < goal.max) {
+          return {
+            newWeight: w,
+            msg: `🔥 In zone. Aim for ${r + 1} reps.`,
+            type: "maintain",
+            style: "bg-blue-50 text-blue-600",
+          };
+        }
+
+        // SCENARIO 4: STALLED / REGRESSED (Under Min)
+        if (r < goal.min) {
+          const deloadWeight = Math.floor((w * 0.9) / 2.5) * 2.5;
+          return {
+            newWeight: deloadWeight,
+            msg: `⚠️ Stalling. Reset -10% (${deloadWeight}kg)`,
+            type: "decrease",
+            style: "bg-yellow-100 text-yellow-800",
+          };
+        }
+
+        return null;
+      }
+
       // --- WORKOUT LOGIC ---
       function startWorkout(dayKey) {
         const data = workoutData[dayKey];
         const container = document.getElementById("workout-exercises");
+        const aiBanner = document.getElementById("ai-coach-banner");
 
         document.getElementById("workout-title").innerText = data.title;
         document.getElementById("workout-subtitle").innerText = data.subtitle;
 
+        currentSuggestions = {}; // Reset suggestions
+        let hasSuggestions = false;
         let html = "";
+
         data.exercises.forEach((ex, idx) => {
           const idBase = `${dayKey}_${idx}`;
           const savedW = workoutLog[idBase + "_w"] || "";
           const savedR = workoutLog[idBase + "_r"] || "";
+
+          // Run AI Check
+          const rec = getAIRecommendation(ex.name, savedW, savedR, ex.reps);
+          let badgeHtml = "";
+
+          if (rec) {
+            if (rec.type === "increase" || rec.type === "decrease") {
+              hasSuggestions = true;
+              currentSuggestions[`${idBase}_w`] = rec.newWeight;
+            }
+
+            badgeHtml = `
+                    <div class="mt-2 ${rec.style} text-xs p-2 rounded-lg flex items-center gap-2 ${rec.type === "increase" ? "ai-pulse" : ""}">
+                        <span>${rec.msg}</span>
+                    </div>`;
+          }
 
           html += `
                 <div class="app-card p-4">
@@ -461,26 +652,39 @@
                         </div>
                         <div class="text-xs text-gray-400 italic text-right">${ex.notes}</div>
                     </div>
+
                     <div class="flex gap-3">
                         <div class="flex-1">
                             <label class="text-[10px] font-bold text-gray-400 uppercase">Weight</label>
                             <input type="number"
+                                id="${idBase}_w"
                                 class="w-full gym-input p-3 font-bold text-gray-900"
                                 placeholder="kg"
                                 value="${savedW}"
                                 oninput="saveLog('${idBase}_w', this.value)">
                         </div>
                         <div class="flex-1">
-                            <label class="text-[10px] font-bold text-gray-400 uppercase">Reps</label>
+                            <label class="text-[10px] font-bold text-gray-400 uppercase">Last Reps</label>
                             <input type="number"
+                                id="${idBase}_r"
                                 class="w-full gym-input p-3 font-bold text-gray-900"
                                 placeholder="Done"
                                 value="${savedR}"
                                 oninput="saveLog('${idBase}_r', this.value)">
                         </div>
                     </div>
+                    ${badgeHtml}
                 </div>`;
         });
+
+        // Show AI Banner if needed
+        if (hasSuggestions) {
+          aiBanner.classList.remove("hidden");
+          aiBanner.classList.add("flex");
+        } else {
+          aiBanner.classList.add("hidden");
+          aiBanner.classList.remove("flex");
+        }
 
         html += `
             <div class="pb-8">
@@ -492,6 +696,27 @@
         container.innerHTML = html;
         switchTab("log");
       }
+
+      window.applyAISuggestions = function () {
+        for (const [key, value] of Object.entries(currentSuggestions)) {
+          const inputEl = document.getElementById(key);
+          if (inputEl) {
+            inputEl.value = value;
+            inputEl.classList.add("bg-purple-50", "text-purple-700");
+            saveLog(key, value);
+
+            // Reset reps to empty for new session
+            const repKey = key.replace("_w", "_r");
+            const repInput = document.getElementById(repKey);
+            if (repInput) {
+              repInput.value = "";
+              saveLog(repKey, "");
+            }
+          }
+        }
+        alert("✨ AI Plan Applied: Weights updated based on performance.");
+        document.getElementById("ai-coach-banner").classList.add("hidden");
+      };
 
       function saveLog(key, val) {
         workoutLog[key] = val;
@@ -615,7 +840,6 @@
         });
       }
 
-      // Add Progression Handler
       document.getElementById("log-lift-form").addEventListener("submit", (e) => {
         e.preventDefault();
         const liftName = document.getElementById("lift-select").value;
@@ -626,45 +850,52 @@
           const e1rm = Math.round(weight * (1 + reps / 30));
           const date = new Date().toLocaleDateString(undefined, { month: "short", day: "numeric" });
 
-          // Add Date label if not exists
           if (!progressionData.labels.includes(date)) {
             progressionData.labels.push(date);
           }
 
-          // Find dataset and add data
           const dataset = progressionData.datasets.find((ds) => ds.label === liftName);
           if (dataset) {
-            // Pad with nulls if this is a new date
             while (dataset.data.length < progressionData.labels.length - 1) {
               dataset.data.push(null);
             }
             dataset.data.push(e1rm);
           }
 
-          // Save to LocalStorage
           localStorage.setItem("pb_progressionData", JSON.stringify(progressionData));
 
-          // Update Chart
           if (chartInstanceProgression) {
             chartInstanceProgression.update();
           } else {
             renderProgressionChart();
           }
 
-          // Reset Form
           document.getElementById("lift-weight").value = "";
           document.getElementById("lift-reps").value = "";
           alert(`Logged! Est. 1RM: ${e1rm}kg`);
         }
       });
 
-      // Clear History
       window.clearHistory = function () {
         if (confirm("Are you sure? This deletes all graph history.")) {
           localStorage.removeItem("pb_progressionData");
           progressionData = defaultProgressionData;
           location.reload();
         }
+      };
+
+      // Install Prompt Logic
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+      const isStandalone = window.navigator.standalone || window.matchMedia("(display-mode: standalone)").matches;
+
+      if (isIOS && !isStandalone) {
+        setTimeout(() => {
+          document.getElementById("install-prompt").classList.remove("hidden");
+        }, 2000);
+      }
+
+      window.closeInstallPrompt = function () {
+        document.getElementById("install-prompt").classList.add("hidden");
       };
     </script>
   </body>
